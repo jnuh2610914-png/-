@@ -105,80 +105,6 @@ const formatKoreanDate = (dateStr: string) => {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 };
 
-// Custom Markdown-like parser & renderer for Gemini responses to keep UI perfectly clean and beautiful
-function AIBriefingRenderer({ text }: { text: string }) {
-  const lines = text.split("\n");
-  
-  return (
-    <div className="space-y-4 text-slate-700 leading-relaxed text-sm">
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return null;
-        
-        // Headers (e.g. ### 🌤️ 오늘의 날씨 요약)
-        if (trimmed.startsWith("###")) {
-          const content = trimmed.replace(/^###\s*/, "");
-          return (
-            <h4 key={idx} className="font-semibold text-slate-800 text-base flex items-center gap-1.5 border-b border-slate-200 pb-1 mt-4 first:mt-0">
-              {content}
-            </h4>
-          );
-        }
-        
-        if (trimmed.startsWith("##")) {
-          const content = trimmed.replace(/^##\s*/, "");
-          return (
-            <h3 key={idx} className="font-bold text-slate-800 text-lg flex items-center gap-1.5 mt-5">
-              {content}
-            </h3>
-          );
-        }
-        
-        // Bullet points (e.g. * 비 소식이 있어요!)
-        if (trimmed.startsWith("*") || trimmed.startsWith("-")) {
-          const content = trimmed.replace(/^[\*\-]\s*/, "");
-          
-          // Render bold parts inside bullet point
-          return (
-            <div key={idx} className="flex gap-2.5 items-start pl-1">
-              <span className="text-indigo-500 mt-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
-              <p className="text-slate-600">
-                <FormattedText text={content} />
-              </p>
-            </div>
-          );
-        }
-        
-        // Paragraphs
-        return (
-          <p key={idx} className="text-slate-600 pl-1">
-            <FormattedText text={trimmed} />
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-// Parses bold markdown text (**text**)
-function FormattedText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          return (
-            <strong key={i} className="font-semibold text-slate-800 bg-slate-100/80 px-1.5 py-0.5 rounded text-xs mx-0.5 border border-slate-200/60">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        return part;
-      })}
-    </>
-  );
-}
-
 // Dictionary for translating common city names into Korean
 const getKoreanCityName = (name: string) => {
   const dictionary: { [key: string]: string } = {
@@ -237,32 +163,9 @@ export default function App() {
   const [cityInput, setCityInput] = useState("");
   const [activeCity, setActiveCity] = useState("서울");
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [aiSummary, setAiSummary] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [error, setError] = useState<string | null>(null);
-  
-  // Custom smart loading messages for AI Briefing
-  const [aiStatusIdx, setAiStatusIdx] = useState(0);
-  const aiStatusMessages = [
-    "실시간 기상 데이터 분석 중...",
-    "체감 온도 및 자외선 지수 측정 중...",
-    "오늘 기온에 어울리는 최적의 의상 매칭 중...",
-    "안전한 야외 활동을 위한 미세먼지 수치 분석 중...",
-    "Gemini AI 가이드를 작성하는 중입니다..."
-  ];
-
-  // Rotate loading status text for delightful user experience
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (aiLoading) {
-      interval = setInterval(() => {
-        setAiStatusIdx((prev) => (prev + 1) % aiStatusMessages.length);
-      }, 2500);
-    }
-    return () => clearInterval(interval);
-  }, [aiLoading]);
 
   // Handle local clock display
   useEffect(() => {
@@ -294,39 +197,10 @@ export default function App() {
       const data: WeatherData = await response.json();
       setWeather(data);
       setActiveCity(getKoreanCityName(data.location.name));
-      
-      // Promptly request AI Briefing once weather is fetched
-      fetchAIBriefing(data);
+      setLoading(false);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "날씨 데이터를 불러오는 중 문제가 발생했습니다.");
-      setLoading(false);
-    }
-  };
-
-  // Fetch AI Briefing
-  const fetchAIBriefing = async (weatherData: WeatherData) => {
-    setAiLoading(true);
-    setAiStatusIdx(0);
-    try {
-      const response = await fetch("/api/weather/ai-summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ weatherData }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAiSummary(data.summary);
-      } else {
-        setAiSummary("AI 기상 브리핑을 생성하지 못했습니다. 아래 기온 정보에 어울리는 안전한 활동을 계획하세요!");
-      }
-    } catch (err) {
-      console.error("AI briefing call error:", err);
-      setAiSummary("AI 네트워크가 잠시 불안정합니다. 추천 옷차림: 계절에 맞는 겉옷과 편안한 캐주얼.");
-    } finally {
-      setAiLoading(false);
       setLoading(false);
     }
   };
