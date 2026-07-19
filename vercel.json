@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/weather", "destination": "/api/weather.ts" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
