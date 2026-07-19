@@ -157,52 +157,91 @@ app.get("/api/weather", async (req, res) => {
 
   // Option B: Fallback to Open-Meteo & Open-Meteo Geocoding
   try {
-    // 1. Geocode city query
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=1&language=ko`;
-    const geoRes = await fetch(geoUrl);
     let lat = 37.5665;
     let lon = 126.9780;
     let name = "서울";
     let country = "대한민국";
     let region = "서울특별시";
 
-    if (geoRes.ok) {
-      const geoData = await geoRes.json();
-      if (geoData.results && geoData.results.length > 0) {
-        const place = geoData.results[0];
-        lat = place.latitude;
-        lon = place.longitude;
-        name = place.name;
-        country = place.country || "";
-        region = place.admin1 || "";
-      } else {
-        // Simple manual dictionary for Korean cities if geocoding returns nothing
-        const koreanCities: { [key: string]: { lat: number; lon: number; name: string; region: string } } = {
-          "서울": { lat: 37.5665, lon: 126.9780, name: "서울", region: "서울특별시" },
-          "seoul": { lat: 37.5665, lon: 126.9780, name: "서울", region: "서울특별시" },
-          "부산": { lat: 35.1796, lon: 129.0756, name: "부산", region: "부산광역시" },
-          "busan": { lat: 35.1796, lon: 129.0756, name: "부산", region: "부산광역시" },
-          "인천": { lat: 37.4563, lon: 126.7052, name: "인천", region: "인천광역시" },
-          "incheon": { lat: 37.4563, lon: 126.7052, name: "인천", region: "인천광역시" },
-          "대구": { lat: 35.8714, lon: 128.6014, name: "대구", region: "대구광역시" },
-          "daegu": { lat: 35.8714, lon: 128.6014, name: "대구", region: "대구광역시" },
-          "대전": { lat: 36.3504, lon: 127.3845, name: "대전", region: "대전광역시" },
-          "daejeon": { lat: 36.3504, lon: 127.3845, name: "대전", region: "대전광역시" },
-          "광주": { lat: 35.1595, lon: 126.8526, name: "광주", region: "광주광역시" },
-          "gwangju": { lat: 35.1595, lon: 126.8526, name: "광주", region: "광주광역시" },
-          "울산": { lat: 35.5384, lon: 129.3114, name: "울산", region: "울산광역시" },
-          "ulsan": { lat: 35.5384, lon: 129.3114, name: "울산", region: "울산광역시" },
-          "제주": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주도" },
-          "jeju": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주도" }
-        };
-        const lowerQuery = cityQuery.toLowerCase().trim();
-        if (koreanCities[lowerQuery]) {
-          lat = koreanCities[lowerQuery].lat;
-          lon = koreanCities[lowerQuery].lon;
-          name = koreanCities[lowerQuery].name;
-          region = koreanCities[lowerQuery].region;
+    const lowerQuery = cityQuery.toLowerCase().trim();
+    const koreanCities: { [key: string]: { lat: number; lon: number; name: string; region: string; country: string } } = {
+      "서울": { lat: 37.5665, lon: 126.9780, name: "서울", region: "서울특별시", country: "대한민국" },
+      "seoul": { lat: 37.5665, lon: 126.9780, name: "서울", region: "서울특별시", country: "대한민국" },
+      "부산": { lat: 35.1796, lon: 129.0756, name: "부산", region: "부산광역시", country: "대한민국" },
+      "busan": { lat: 35.1796, lon: 129.0756, name: "부산", region: "부산광역시", country: "대한민국" },
+      "인천": { lat: 37.4563, lon: 126.7052, name: "인천", region: "인천광역시", country: "대한민국" },
+      "incheon": { lat: 37.4563, lon: 126.7052, name: "인천", region: "인천광역시", country: "대한민국" },
+      "대구": { lat: 35.8714, lon: 128.6014, name: "대구", region: "대구광역시", country: "대한민국" },
+      "daegu": { lat: 35.8714, lon: 128.6014, name: "대구", region: "대구광역시", country: "대한민국" },
+      "대전": { lat: 36.3504, lon: 127.3845, name: "대전", region: "대전광역시", country: "대한민국" },
+      "daejeon": { lat: 36.3504, lon: 127.3845, name: "대전", region: "대전광역시", country: "대한민국" },
+      "광주": { lat: 35.1595, lon: 126.8526, name: "광주", region: "광주광역시", country: "대한민국" },
+      "gwangju": { lat: 35.1595, lon: 126.8526, name: "광주", region: "광주광역시", country: "대한민국" },
+      "울산": { lat: 35.5384, lon: 129.3114, name: "울산", region: "울산광역시", country: "대한민국" },
+      "ulsan": { lat: 35.5384, lon: 129.3114, name: "울산", region: "울산광역시", country: "대한민국" },
+      "제주": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "제주도": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "제주시": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "jeju": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "jeju-do": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "jeju city": { lat: 33.4996, lon: 126.5312, name: "제주", region: "제주특별자치도", country: "대한민국" },
+      "서귀포": { lat: 33.2541, lon: 126.5601, name: "서귀포", region: "제주특별자치도", country: "대한민국" },
+      "서귀포시": { lat: 33.2541, lon: 126.5601, name: "서귀포", region: "제주특별자치도", country: "대한민국" },
+      "seogwipo": { lat: 33.2541, lon: 126.5601, name: "서귀포", region: "제주특별자치도", country: "대한민국" }
+    };
+
+    if (koreanCities[lowerQuery]) {
+      lat = koreanCities[lowerQuery].lat;
+      lon = koreanCities[lowerQuery].lon;
+      name = koreanCities[lowerQuery].name;
+      region = koreanCities[lowerQuery].region;
+      country = koreanCities[lowerQuery].country;
+    } else {
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=1&language=ko`;
+      const geoRes = await fetch(geoUrl);
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        if (geoData.results && geoData.results.length > 0) {
+          const place = geoData.results[0];
+          lat = place.latitude;
+          lon = place.longitude;
+          name = place.name;
+          country = place.country || "";
+          region = place.admin1 || "";
         }
       }
+    }
+
+    // Force Korea (대한민국) for Jeju or any geocoded South Korea variation
+    const lowerName = name.toLowerCase();
+    const lowerRegion = region ? region.toLowerCase() : "";
+    const lowerCountry = country ? country.toLowerCase() : "";
+
+    if (
+      lowerQuery.includes("jeju") ||
+      lowerQuery.includes("제주") ||
+      lowerQuery.includes("seogwipo") ||
+      lowerQuery.includes("서귀포") ||
+      lowerName.includes("jeju") ||
+      lowerName.includes("제주") ||
+      lowerRegion.includes("jeju") ||
+      lowerRegion.includes("제주") ||
+      lowerName.includes("seogwipo") ||
+      lowerName.includes("서귀포")
+    ) {
+      name = (lowerName.includes("seogwipo") || lowerName.includes("서귀포") || lowerQuery.includes("서귀포") || lowerQuery.includes("seogwipo")) ? "서귀포" : "제주";
+      region = "제주특별자치도";
+      country = "대한민국";
+    }
+
+    if (
+      lowerCountry.includes("korea") ||
+      lowerCountry.includes("대한민국") ||
+      lowerCountry.includes("republic of korea") ||
+      lowerCountry.includes("south korea") ||
+      lowerCountry.includes("kr")
+    ) {
+      country = "대한민국";
     }
 
     // 2. Fetch Weather from Open-Meteo
@@ -216,7 +255,20 @@ app.get("/api/weather", async (req, res) => {
       
       // Hourly parsing (take 12 points spaced by 2 hours starting from now)
       const hourlyData = [];
-      const currentHourIdx = new Date().getHours();
+      
+      // Determine correct timezone (force Asia/Seoul for Korean cities or default to wData.timezone)
+      let targetTimezone = wData.timezone || "Asia/Seoul";
+      if (country === "대한민국" || name === "제주" || name === "서울" || name === "부산" || name === "인천" || name === "대구" || name === "대전" || name === "광주" || name === "울산" || name === "서귀포") {
+        targetTimezone = "Asia/Seoul";
+      }
+
+      const targetHourStr = new Date().toLocaleTimeString("en-US", {
+        timeZone: targetTimezone,
+        hour12: false,
+        hour: "2-digit"
+      });
+      const currentHourIdx = parseInt(targetHourStr, 10);
+
       for (let i = 0; i < 24; i += 2) {
         const idx = (currentHourIdx + i) % 24;
         const temp = wData.hourly.temperature_2m[idx] || wData.current.temperature_2m;
@@ -277,7 +329,7 @@ app.get("/api/weather", async (req, res) => {
           country,
           lat,
           lon,
-          localtime: new Date().toLocaleString("ko-KR", { timeZone: wData.timezone })
+          localtime: new Date().toLocaleString("ko-KR", { timeZone: targetTimezone })
         },
         current: {
           temp_c: Math.round(wData.current.temperature_2m * 10) / 10,

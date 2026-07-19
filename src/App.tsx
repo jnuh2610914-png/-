@@ -328,7 +328,6 @@ export default function App() {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
                 오늘의 날씨
-                <span className="text-xs font-normal bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-full">실시간 기상 브리핑</span>
               </h1>
               <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                 <Clock className="h-3 w-3 text-slate-400" />
@@ -441,7 +440,10 @@ export default function App() {
                         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                           {getKoreanCityName(weather.location.name)}
                         </h2>
-                        {weather.location.region && (
+                        {weather.location.region && 
+                         getKoreanCityName(weather.location.name) !== weather.location.region && 
+                         !weather.location.region.includes(getKoreanCityName(weather.location.name)) && 
+                         !getKoreanCityName(weather.location.name).includes(weather.location.region) && (
                           <span className="text-sm sm:text-base text-slate-500 font-medium ml-1">
                             ({weather.location.region})
                           </span>
